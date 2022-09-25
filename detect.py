@@ -1,3 +1,4 @@
+from operator import sub
 import cv2
 import numpy as np
 import matplotlib.patches as patches
@@ -7,33 +8,24 @@ import torch
 person_model = torch.hub.load("ultralytics/yolov5", "custom", path="crowdhuman_yolov5m.pt")
 # person_model = torch.load("./e2edet_final.pth", map_location=torch.device('cpu'))
 
-cap = cv2.VideoCapture("Engagement_Fair_2022.MOV")
+
+# Initial start time: 10:38 AM
+# End time: 1:28 PM
+cap = cv2.VideoCapture("cut.mp4")
 
 canvas = np.zeros((1080, 1920, 3), np.uint8)
 
 g_ellipse = patches.Ellipse((1060, 470), 425, 200, angle=360, fill=False)
 
+sub_sections = 2
+
+frame_count = 0
+
+quadrant_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+
 while cap.isOpened():
     ret, frame = cap.read()
  
-    # Select ROI
-    # r = cv2.selectROI(frame)
- 
-    # # Crop image
-    # imCrop = frame[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
-    # print((int(r[1]), int(r[1]+r[3])), (int(r[0]), int(r[0]+r[2])))
- 
-    # # Display cropped image
-    # cv2.imshow("Image", imCrop)
-    # cv2.waitKey(0)
-
-    # quadrant 1
-    # frame_q1 = frame[130:470, 1050:1900]
-
-    # quadrant 4
-    # frame_q4 = frame[130:470, 26:1050]
-
-    # frame = cv2.resize(frame_bgr, (frame_bgr.shape[1]*3, frame_bgr.shape[0]*3))
     frame_count = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
     if ret:
@@ -45,134 +37,48 @@ while cap.isOpened():
         canvas = cv2.ellipse(canvas, (1060, 470), (425, 200), 0, 0, 360, (0, 0, 255), 3)
         canvas = cv2.ellipse(canvas, (960, 600), (960, 455), 0, 0, 360, (255, 0, 0), 3)
 
-        # frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        for i in range(1, sub_sections+1):
+            for j in range(1, sub_sections+1):
+                min_bound_x = int(frame.shape[1]*(max(0,j-1)/sub_sections))
+                max_bound_x = int(frame.shape[1]*(j/sub_sections))
 
-        # quadrant 1
-        frame_q1 = frame[130:470, 1050:1900]
-        # frame_q1_q1 = frame_q1[:frame_q1.shape[0]/2, frame_q1.shape[1]/2:]
-        # frame_q1_q2 = frame_q1[frame_q1.shape[0]/2:, frame_q1.shape[1]/2:]
-        # frame_q1_q3 = frame_q1[frame_q1.shape[0]/2:, :frame_q1.shape[1]/2]
-        # frame_q1_q4 = frame_q1[:frame_q1.shape[0]/2, :frame_q1.shape[1]/2]
+                min_bound_y = int(frame.shape[0]*(max(0,i-1)/sub_sections))
+                max_bound_y = int(frame.shape[0]*(i/sub_sections))
 
-        # # quadrant 2
-        frame_q2 = frame[470:1080, 1050:1900]
-        # frame_q2_q1 = frame_q2[:frame_q2.shape[0]/2, frame_q2.shape[1]/2:]
-        # frame_q2_q2 = frame_q2[frame_q2.shape[0]/2:, frame_q2.shape[1]/2:]
-        # frame_q2_q3 = frame_q2[frame_q2.shape[0]/2:, :frame_q2.shape[1]/2]
-        # frame_q2_q4 = frame_q2[:frame_q2.shape[0]/2, :frame_q2.shape[1]/2]
+                quadrant = frame[min_bound_y:max_bound_y, min_bound_x:max_bound_x]
 
-        # # quadrant 3
-        frame_q3 = frame[470:1080, 26:1050]
-        # frame_q3_q1 = frame_q3[:frame_q3.shape[0]/2, frame_q3.shape[1]/2:]
-        # frame_q3_q2 = frame_q3[frame_q3.shape[0]/2:, frame_q3.shape[1]/2:]
-        # frame_q3_q3 = frame_q3[frame_q3.shape[0]/2:, :frame_q3.shape[1]/2]
-        # frame_q3_q4 = frame_q3[:frame_q3.shape[0]/2, :frame_q3.shape[1]/2]
+                # cv2.imwrite(f"./quadrants/q{i}_{j}.png", quadrant)
 
-        # quadrant 4
-        frame_q4 = frame[130:470, 26:1050]
-        # frame_q4_test = frame[130:470, 100:525]
-        # frame_q4_q1 = frame_q4[:int(frame_q4.shape[0]/2), int(frame_q4.shape[1]/2):]
-        # frame_q4_q2 = frame_q4[int(frame_q4.shape[0]/2):, int(frame_q4.shape[1]/2):]
-        # frame_q4_q3 = frame_q4[int(frame_q4.shape[0]/2):, :int(frame_q4.shape[1]/2)]
-        # frame_q4_q4 = frame_q4[:int(frame_q4.shape[0]/2), :int(frame_q4.shape[1]/2)]
-        # frame_bgr = cv2.resize(frame[:400, :400])
+                # print((min_bound_x, min_bound_y), (max_bound_x, max_bound_y))
 
-        # frame_bgr = cv2.resize(frame_bgr, (frame_bgr.shape[1]*3, frame_bgr.shape[0]*3))
+                inference = person_model(quadrant)
 
-        # results = person_model(frame_bgr)
+                if not inference.pandas().xyxy[0].empty:
+                    for index, row in inference.pandas().xyxy[0].iterrows():
+                        if(row["name"] == "person" and row["confidence"] > 0.4):
+                            if i == 1 and j == 1:
+                                quadrant_counts[1] += 1
+                            elif i == 1 and j == 2:
+                                quadrant_counts[2] += 1
+                            elif i == 2 and j == 1:
+                                quadrant_counts[3] += 1
+                            else:
+                                quadrant_counts[4] += 1
+                            cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+min_bound_x), int(row["ymin"])-10+min_bound_y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                            cv2.rectangle(frame, (int(row["xmin"]+min_bound_x), int(row["ymin"]+min_bound_y)), (int(row["xmax"]+min_bound_x), int(row["ymax"]+min_bound_y)), (0, 255, 0), 2)
+                            
+                            center_x = int((row["xmin"] + row["xmax"])/2) + min_bound_x
+                            center_y = int((row["ymin"] + row["ymax"])/2) + min_bound_y
 
-        results_q1 = person_model(frame_q1)
-        results_q2 = person_model(frame_q2)
-        results_q3 = person_model(frame_q3)
-        results_q4 = person_model(frame_q4)
+                            cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
 
-        # results_q4_q1 = person_model(frame_q4_q1)
-        # results_q4_q2 = person_model(frame_q4_q2)
-        # results_q4_q3 = person_model(frame_q4_q3)
-        # results_q4_q4 = person_model(frame_q4_q4)
+        # break
 
-        # if not results_q4_q1.pandas().xyxy[0].empty:
-        #     for index, row in results_q4_q1.pandas().xyxy[0].iterrows():
-        #         if(row["name"] == "person" and row["confidence"] > 0.4):
-        #             cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+26), int(row["ymin"])-10+130), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        #             cv2.rectangle(frame, (int(row["xmin"]+130), int(row["ymin"]+130)), (int(row["xmax"]+26), int(row["ymax"]+130)), (0, 255, 0), 2)
-        #             center_x = int((row["xmin"] + row["xmax"])/2)
-        #             center_y = int((row["ymin"] + row["ymax"])/2)
-        #             # numpy check circle areas
-        #             cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-        
-        # if not results_q4_q2.pandas().xyxy[0].empty:
-        #     for index, row in results_q4_q2.pandas().xyxy[0].iterrows():
-        #         if(row["name"] == "person" and row["confidence"] > 0.4):
-        #             cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+26), int(row["ymin"])-10+130), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        #             cv2.rectangle(frame, (int(row["xmin"]+26), int(row["ymin"]+130)), (int(row["xmax"]+26), int(row["ymax"]+130)), (0, 255, 0), 2)
-        #             center_x = int((row["xmin"] + row["xmax"])/2) + 26
-        #             center_y = int((row["ymin"] + row["ymax"])/2) + 130
-        #             # numpy check circle areas
-        #             cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-        
-        # if not results_q4_q3.pandas().xyxy[0].empty:
-        #     for index, row in results_q4_q3.pandas().xyxy[0].iterrows():
-        #         if(row["name"] == "person" and row["confidence"] > 0.4):
-        #             cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+26), int(row["ymin"])-10+130), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        #             cv2.rectangle(frame, (int(row["xmin"]+26), int(row["ymin"]+130)), (int(row["xmax"]+26), int(row["ymax"]+130)), (0, 255, 0), 2)
-        #             center_x = int((row["xmin"] + row["xmax"])/2) + 26
-        #             center_y = int((row["ymin"] + row["ymax"])/2) + 130
-        #             # numpy check circle areas
-        #             cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-
-        # if not results_q4_q4.pandas().xyxy[0].empty:
-        #     for index, row in results_q4_q4.pandas().xyxy[0].iterrows():
-        #         if(row["name"] == "person" and row["confidence"] > 0.4):
-        #             cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+26), int(row["ymin"])-10+130), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        #             cv2.rectangle(frame, (int(row["xmin"]+26), int(row["ymin"]+130)), (int(row["xmax"]+26), int(row["ymax"]+130)), (0, 255, 0), 2)
-        #             center_x = int((row["xmin"] + row["xmax"])/2) + 26
-        #             center_y = int((row["ymin"] + row["ymax"])/2) + 130
-        #             # numpy check circle areas
-        #             cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-        # print(results)
-
-        # q1_results = person_model(frame_bgr[470:800, 200:425])
-
-        if not results_q1.pandas().xyxy[0].empty:
-            for index, row in results_q1.pandas().xyxy[0].iterrows():
-                if(row["name"] == "person" and row["confidence"] > 0.4):
-                    cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+1050), int(row["ymin"])-10+130), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-                    cv2.rectangle(frame, (int(row["xmin"]+1050), int(row["ymin"]+130)), (int(row["xmax"]+1050), int(row["ymax"]+130)), (0, 255, 0), 2)
-                    center_x = int((row["xmin"] + row["xmax"])/2) + 1050
-                    center_y = int((row["ymin"] + row["ymax"])/2) + 130
-                    # numpy check circle areas
-                    cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-
-        if not results_q2.pandas().xyxy[0].empty:
-            for index, row in results_q2.pandas().xyxy[0].iterrows():
-                if(row["name"] == "person" and row["confidence"] > 0.4):
-                    cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+1050), int(row["ymin"])-10+470), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-                    cv2.rectangle(frame, (int(row["xmin"]+1050), int(row["ymin"]+470)), (int(row["xmax"]+1050), int(row["ymax"]+470)), (0, 255, 0), 2)
-                    center_x = int((row["xmin"] + row["xmax"])/2) + 1050
-                    center_y = int((row["ymin"] + row["ymax"])/2) + 470
-                    # numpy check circle areas
-                    cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-
-        if not results_q3.pandas().xyxy[0].empty:
-            for index, row in results_q3.pandas().xyxy[0].iterrows():
-                if(row["name"] == "person" and row["confidence"] > 0.4):
-                    cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+26), int(row["ymin"])-10+470), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-                    cv2.rectangle(frame, (int(row["xmin"]+26), int(row["ymin"]+470)), (int(row["xmax"]+26), int(row["ymax"]+470)), (0, 255, 0), 2)
-                    center_x = int((row["xmin"] + row["xmax"])/2) + 26
-                    center_y = int((row["ymin"] + row["ymax"])/2) + 470
-                    # numpy check circle areas
-                    cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
-
-        if not results_q4.pandas().xyxy[0].empty:
-            for index, row in results_q4.pandas().xyxy[0].iterrows():
-                if(row["name"] == "person" and row["confidence"] > 0.4):
-                    cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+26), int(row["ymin"])-10+130), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-                    cv2.rectangle(frame, (int(row["xmin"]+26), int(row["ymin"]+130)), (int(row["xmax"]+26), int(row["ymax"]+130)), (0, 255, 0), 2)
-                    center_x = int((row["xmin"] + row["xmax"])/2) + 26
-                    center_y = int((row["ymin"] + row["ymax"])/2) + 130
-                    # numpy check circle areas
-                    cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
+        # print(quadrant_counts)
+        print(f"Q1 avg.: {quadrant_counts[1]/frame_count}")
+        print(f"Q2 avg.: {quadrant_counts[2]/frame_count}")
+        print(f"Q3 avg.: {quadrant_counts[3]/frame_count}")
+        print(f"Q4 avg.: {quadrant_counts[4]/frame_count}")
 
         cv2.imshow("frame", frame)
         cv2.imshow("canvas", canvas)
