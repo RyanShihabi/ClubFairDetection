@@ -9,12 +9,12 @@ import torch
 person_model = torch.hub.load("ultralytics/yolov5", "custom", path="crowdhuman_yolov5m.pt")
 # person_model = torch.load("./e2edet_final.pth", map_location=torch.device('cpu'))
 
-headers = ["Time (seconds)", "Q1 Count", "Q2 Count", "Q3 Count", "Q4 Count"]
+headers = ["second", "Q1 Count", "Q2 Count", "Q3 Count", "Q4 Count"]
 
 
 # Initial start time: 10:38 AM
 # End time: 1:28:41 PM
-cap = cv2.VideoCapture("cut.mp4")
+cap = cv2.VideoCapture("30.mp4")
 
 canvas = np.zeros((1080, 1920, 3), np.uint8)
 
@@ -69,13 +69,13 @@ while cap.isOpened():
                                     second_total_q1 += 1
                                 elif i == 1 and j == 2:
                                     # quadrant_counts[2] += 1
-                                    second_total_q1 += 1
+                                    second_total_q2 += 1
                                 elif i == 2 and j == 1:
                                     # quadrant_counts[3] += 1
-                                    second_total_q1 += 1
+                                    second_total_q3 += 1
                                 else:
                                     # quadrant_counts[4] += 1
-                                    second_total_q1 += 1
+                                    second_total_q4 += 1
                                 cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+min_bound_x), int(row["ymin"])-10+min_bound_y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                                 cv2.rectangle(frame, (int(row["xmin"]+min_bound_x), int(row["ymin"]+min_bound_y)), (int(row["xmax"]+min_bound_x), int(row["ymax"]+min_bound_y)), (0, 255, 0), 2)
                                 
@@ -92,6 +92,7 @@ while cap.isOpened():
                 "Q4 Count": second_total_q4
             })
 
+
             seconds += 1
 
             cv2.imshow("frame", frame)
@@ -104,12 +105,12 @@ while cap.isOpened():
 
 cv2.destroyAllWindows()
 
-print(f"Q1 avg.: {quadrant_counts[1]/frame_count}")
-print(f"Q2 avg.: {quadrant_counts[2]/frame_count}")
-print(f"Q3 avg.: {quadrant_counts[3]/frame_count}")
-print(f"Q4 avg.: {quadrant_counts[4]/frame_count}")
+# print(f"Q1 avg.: {quadrant_counts[1]/frame_count}")
+# print(f"Q2 avg.: {quadrant_counts[2]/frame_count}")
+# print(f"Q3 avg.: {quadrant_counts[3]/frame_count}")
+# print(f"Q4 avg.: {quadrant_counts[4]/frame_count}")
 
-# with open('club_fair.csv', 'w', encoding='UTF8', newline='') as f:
-#     writer = csv.DictWriter(f, fieldnames=headers)
-#     writer.writeheader()
-#     writer.writerows(rows)
+with open('club_fair.csv', 'w', encoding='UTF8', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=headers)
+    writer.writeheader()
+    writer.writerows(rows)
