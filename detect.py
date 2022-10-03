@@ -20,7 +20,7 @@ canvas = np.zeros((1080, 1920, 3), np.uint8)
 
 g_ellipse = patches.Ellipse((1060, 470), 425, 200, angle=360, fill=False)
 
-sub_sections = 2
+sub_sections = 4
 
 frame_count = None
 
@@ -49,40 +49,49 @@ while cap.isOpened():
             canvas = cv2.ellipse(canvas, (1060, 470), (425, 200), 0, 0, 360, (0, 0, 255), 3)
             canvas = cv2.ellipse(canvas, (960, 600), (960, 455), 0, 0, 360, (255, 0, 0), 3)
 
+            # quadrant split
+            # for i in range(1, sub_sections+1):
+            #     for j in range(1, sub_sections+1):
+            #         min_bound_x = int(frame.shape[1]*(max(0,j-1)/sub_sections))
+            #         max_bound_x = int(frame.shape[1]*(j/sub_sections))
+
+            #         min_bound_y = int(frame.shape[0]*(max(0,i-1)/sub_sections))
+            #         max_bound_y = int(frame.shape[0]*(i/sub_sections))
+
+
             for i in range(1, sub_sections+1):
-                for j in range(1, sub_sections+1):
-                    min_bound_x = int(frame.shape[1]*(max(0,j-1)/sub_sections))
-                    max_bound_x = int(frame.shape[1]*(j/sub_sections))
+                min_bound_x = int(frame.shape[1]*(max(0,i-1)/sub_sections))
+                max_bound_x = int(frame.shape[1]*(i/sub_sections))
 
-                    min_bound_y = int(frame.shape[0]*(max(0,i-1)/sub_sections))
-                    max_bound_y = int(frame.shape[0]*(i/sub_sections))
+                quadrant = frame[:, min_bound_x:max_bound_x]
 
-                    quadrant = frame[min_bound_y:max_bound_y, min_bound_x:max_bound_x]
+                print(min_bound_x, ":", max_bound_x)
 
-                    inference = person_model(quadrant)
+                inference = person_model(quadrant)
 
-                    if not inference.pandas().xyxy[0].empty:
-                        for index, row in inference.pandas().xyxy[0].iterrows():
-                            if(row["name"] == "person" and row["confidence"] > 0):
-                                if i == 1 and j == 1:
-                                    # quadrant_counts[1] += 1
-                                    second_total_q1 += 1
-                                elif i == 1 and j == 2:
-                                    # quadrant_counts[2] += 1
-                                    second_total_q2 += 1
-                                elif i == 2 and j == 1:
-                                    # quadrant_counts[3] += 1
-                                    second_total_q3 += 1
-                                else:
-                                    # quadrant_counts[4] += 1
-                                    second_total_q4 += 1
-                                cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+min_bound_x), int(row["ymin"])-10+min_bound_y), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-                                cv2.rectangle(frame, (int(row["xmin"]+min_bound_x), int(row["ymin"]+min_bound_y)), (int(row["xmax"]+min_bound_x), int(row["ymax"]+min_bound_y)), (0, 255, 0), 2)
-                                
-                                center_x = int((row["xmin"] + row["xmax"])/2) + min_bound_x
-                                center_y = int((row["ymin"] + row["ymax"])/2) + min_bound_y
+                if not inference.pandas().xyxy[0].empty:
+                    for index, row in inference.pandas().xyxy[0].iterrows():
+                        if(row["name"] == "person" and row["confidence"] > 0):
+                            cv2.putText(frame, str(row["confidence"])[:5], (int(row["xmax"]+min_bound_x), int(row["ymin"])-10), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                            cv2.rectangle(frame, (int(row["xmin"]+min_bound_x), int(row["ymin"])), (int(row["xmax"]+min_bound_x), int(row["ymax"])), (0, 255, 0), 2)
 
-                                cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
+                            center_x = int((row["xmin"] + row["xmax"])/2) + min_bound_x
+                            center_y = int((row["ymin"] + row["ymax"])/2)
+
+                            if center_x >= int(frame.shape[1]/2)and center_y < int(frame.shape[0]/2):
+                                # quadrant_counts[1] += 1
+                                second_total_q1 += 1
+                            elif center_x < int(frame.shape[1]/2)and center_y < int(frame.shape[0]/2):
+                                # quadrant_counts[2] += 1
+                                second_total_q2 += 1
+                            elif center_x < int(frame.shape[1]/2)and center_y >= int(frame.shape[0]/2):
+                                # quadrant_counts[3] += 1
+                                second_total_q3 += 1
+                            else:
+                                # quadrant_counts[4] += 1
+                                second_total_q4 += 1
+
+                            cv2.circle(canvas, (center_x, center_y), 10, (0, 255, 0), -1)
 
             rows.append({
                 "second": seconds,
