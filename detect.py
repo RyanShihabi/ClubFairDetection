@@ -13,18 +13,19 @@ quadrant_counts = {1: 0, 2: 0, 3: 0, 4: 0}
 
 # Initial start time: 10:38 AM
 # End time: 1:28:41 PM
+# cap = cv2.VideoCapture("Engagement_Fair_2022.MOV")
 cap = cv2.VideoCapture("cut.mp4")
 
 canvas = np.zeros((1080, 1920, 3), np.uint8)
 g_ellipse = patches.Ellipse((1060, 470), 425, 200, angle=360, fill=False)
 
 seconds = 0
-sub_sections = 2
+sub_sections = 4
 frame_count = 0
 
 # TODO
 # Segmentation for fountain and entire piazza
-# head count for area near Beckman
+# head count for area near Beckman: rest is good to go
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -47,7 +48,7 @@ while cap.isOpened():
 
             # quadrant split
             for i in range(1, sub_sections+1):
-                for j in range(1, sub_sections+1):
+                for j in range(1, sub_sections+1):  
                     min_bound_x = int(frame.shape[1]*((j-1)/sub_sections))
                     max_bound_x = int(frame.shape[1]*(j/sub_sections))
 
