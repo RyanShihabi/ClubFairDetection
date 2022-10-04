@@ -11,6 +11,9 @@ headers = ["second", "Q1 Count", "Q2 Count", "Q3 Count", "Q4 Count"]
 rows = []
 quadrant_counts = {1: 0, 2: 0, 3: 0, 4: 0}
 
+headers_pos = ["x", "y"]
+rows_pos = []
+
 # Initial start time: 10:38 AM
 # End time: 1:28:41 PM
 # cap = cv2.VideoCapture("Engagement_Fair_2022.MOV")
@@ -79,6 +82,11 @@ while cap.isOpened():
 
                                 center_y = int((row["ymin"] + row["ymax"])/2) + min_bound_y
 
+                                rows_pos.append({
+                                    "x": center_x,
+                                    "y": center_y
+                                })
+
                                 if center_x >= int(frame.shape[1]/2) and center_y < int(frame.shape[0]/2):
                                     second_total_q1 += 1
                                 elif center_x < int(frame.shape[1]/2) and center_y < int(frame.shape[0]/2):
@@ -114,3 +122,8 @@ with open('club_fair.csv', 'w', encoding='UTF8', newline='') as f:
     writer = csv.DictWriter(f, fieldnames=headers)
     writer.writeheader()
     writer.writerows(rows)
+
+with open('club_fair_pos.csv', 'w', encoding='UTF8', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=headers_pos)
+    writer.writeheader()
+    writer.writerows(rows_pos)
