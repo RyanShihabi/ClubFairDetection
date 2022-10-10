@@ -27,7 +27,6 @@ sub_sections = 4
 frame_count = 0
 
 # TODO
-# Segmentation for fountain and entire piazza
 # head count for area near Beckman: rest is good to go
 
 while cap.isOpened():
@@ -118,12 +117,12 @@ while cap.isOpened():
 
 cv2.destroyAllWindows()
 
-with open('club_fair.csv', 'w', encoding='UTF8', newline='') as f:
-    writer = csv.DictWriter(f, fieldnames=headers)
-    writer.writeheader()
-    writer.writerows(rows)
+# with open('club_fair.csv', 'w', encoding='UTF8', newline='') as f:
+#     writer = csv.DictWriter(f, fieldnames=headers)
+#     writer.writeheader()
+#     writer.writerows(rows)
 
-with open('club_fair_pos.csv', 'w', encoding='UTF8', newline='') as f:
-    writer = csv.DictWriter(f, fieldnames=headers_pos)
-    writer.writeheader()
-    writer.writerows(rows_pos)
+# with open('club_fair_pos.csv', 'w', encoding='UTF8', newline='') as f:
+#     writer = csv.DictWriter(f, fieldnames=headers_pos)
+#     writer.writeheader()
+#     writer.writerows(rows_pos)
