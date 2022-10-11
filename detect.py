@@ -35,7 +35,7 @@ while cap.isOpened():
     frame_count = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
     if ret:
-        if frame_count % 60 == 0:
+        if frame_count % 30 == 0:
             second_total_q1 = 0
             second_total_q2 = 0
             second_total_q3 = 0
