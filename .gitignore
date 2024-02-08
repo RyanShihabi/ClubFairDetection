@@ -2,6 +2,5 @@ Engagement_Fair_2022.MOV
 *.mp4
 crowdhuman_yolov5m.pt
 quadrants/
-*.csv
-*.ipynb
 .ipynb_checkpoints/
+*.mov
